@@ -2,40 +2,16 @@ package main
 
 //插件模板
 import (
-	"crypto/tls"
 	"encoding/json"
 	"io"
 	"os"
 	"path"
 
 	"github.com/yaoapp/kun/grpc"
-	"gopkg.in/gomail.v2"
 )
 
 // 定义插件类型，包含grpc.Plugin
 type EmailPlugin struct{ grpc.Plugin }
-
-type Account struct {
-	Server   string `json:"server"`
-	Port     int    `json:"port,omitempty"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Type     string `json:"type"`
-}
-
-type Message struct {
-	From        string   `json:"from"`
-	To          string   `json:"to"`
-	CC          []string `json:"cc,omitempty"`
-	Subject     string   `json:"subject"`
-	Body        string   `json:"body"`
-	Attachments []string `json:"attachments,omitempty"`
-}
-
-type Email struct {
-	Account  Account   `json:"account"`
-	Messages []Message `json:"messages"`
-}
 
 // 设置插件日志到单独的文件
 func (plugin *EmailPlugin) setLogFile() {
@@ -54,43 +30,6 @@ func (plugin *EmailPlugin) setLogFile() {
 	plugin.Plugin.SetLogger(output, grpc.Trace)
 }
 
-func sendEmails(email Email) []error {
-	errs := make([]error, 0)
-	for _, v := range email.Messages {
-		err := sendEmail(email.Account, v)
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
-	return errs
-}
-func sendEmail(account Account, message Message) error {
-	m := gomail.NewMessage()
-	m.SetHeader("From", message.From)
-	if message.From == "" {
-		m.SetHeader("From", account.Username)
-	}
-	m.SetHeader("To", message.To)
-	if len(message.CC) > 0 {
-		m.SetHeader("Cc", message.CC...)
-	}
-	m.SetHeader("Subject", message.Subject)
-	m.SetBody("text/html", message.Body)
-
-	for _, attachment := range message.Attachments {
-		m.Attach(attachment)
-	}
-
-	d := gomail.NewDialer(account.Server, account.Port, account.Username, account.Password)
-	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
-
-	if err := d.DialAndSend(m); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // 插件执行需要实现的方法
 // 参数name是在调用插件时的方法名，比如调用插件demo的Hello方法是的规则是plugins.demo.Hello时。
 //
@@ -104,7 +43,7 @@ func (plugin *EmailPlugin) Exec(name string, args ...interface{}) (*grpc.Respons
 	// plugin.Logger.Log(hclog.Trace, "plugin method called", name)
 	// plugin.Logger.Log(hclog.Trace, "args", args)
 	isOk := true
-	var v = make(map[string]interface{})
+	var v = map[string]interface{}{"code": 200, "message": "发送成功"}
 	var email Email
 
 	switch name {
@@ -139,7 +78,8 @@ func (plugin *EmailPlugin) Exec(name string, args ...interface{}) (*grpc.Respons
 			}
 
 			if isOk {
-				errs := sendEmails(email)
+				// if email.Account.Type != "imap" {
+				errs := sendStmpEmails(email)
 				if len(errs) > 0 {
 					isOk = false
 					message := ""
@@ -151,10 +91,50 @@ func (plugin *EmailPlugin) Exec(name string, args ...interface{}) (*grpc.Respons
 			}
 
 		}
+	case "receive":
+		if len(args) < 1 {
+			v = map[string]interface{}{"code": 400, "message": "参数不足，需要一个参数"}
+			isOk = false
+		}
 
-	}
-	if isOk {
-		v = map[string]interface{}{"code": 200, "message": "发送成功"}
+		if isOk {
+
+			// var account Account
+			switch data := args[0].(type) {
+
+			case string:
+				err := json.Unmarshal([]byte(data), &email)
+				if err != nil {
+					isOk = false
+					v = map[string]interface{}{"code": 400, "message": err.Error()}
+				}
+			case map[string]interface{}:
+				jsonData, err := json.Marshal(data)
+				if err != nil {
+					isOk = false
+					v = map[string]interface{}{"code": 400, "message": err.Error()}
+				}
+				err = json.Unmarshal(jsonData, &email)
+				if err != nil {
+					isOk = false
+					v = map[string]interface{}{"code": 400, "message": err.Error()}
+				}
+			default:
+				isOk = false
+				v = map[string]interface{}{"code": 400, "message": "传入参数类型错误,请传入json数据"}
+			}
+
+			if isOk {
+				messages, err := receiveImapEmails(email)
+				if err != nil {
+					isOk = false
+					v = map[string]interface{}{"code": 400, "message": err.Error()}
+				} else {
+					v = map[string]interface{}{"code": 200, "emails": messages}
+				}
+			}
+
+		}
 	}
 
 	//输出前需要转换成字节
