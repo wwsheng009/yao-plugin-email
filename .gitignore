@@ -1,6 +1,5 @@
 logs
 *.so
 .env
-plugins/email/data
-data
-data/emails
+yaoapp/plugins/email/data
+yaoapp/plugins/data
