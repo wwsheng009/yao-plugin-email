@@ -22,9 +22,19 @@ func sendStmpEmail(account Account, message Message) error {
 	if message.From == "" {
 		m.SetHeader("From", account.Username)
 	}
-	m.SetHeader("To", message.To)
+
+	tousers := make([]string, len(message.To))
+	for i, recipient := range message.To {
+		tousers[i] = m.FormatAddress(recipient.Address, recipient.Name)
+	}
+
+	m.SetHeader("To", tousers...)
 	if len(message.CC) > 0 {
-		m.SetHeader("Cc", message.CC...)
+		ccusers := make([]string, len(message.CC))
+		for i, recipient := range message.CC {
+			ccusers[i] = m.FormatAddress(recipient.Address, recipient.Name)
+		}
+		m.SetHeader("Cc", ccusers...)
 	}
 	m.SetHeader("Subject", message.Subject)
 	m.SetBody("text/html", message.Body)

@@ -6,6 +6,10 @@ email client plugin for yao application。use to send or receive the email。
 
 the default plugin folder path is `<YAO_EXTENSION_ROOT>/plugins/`, the default value for YAO_EXTENSION_ROOT is the app folder, you can change the YAO_EXTENSION_ROOT in the .env file。
 
+## feature
+
+- send email,including the attachement,and send to multi users
+- receive email
 
 ## build
 

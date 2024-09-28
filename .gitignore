@@ -3,3 +3,4 @@ logs
 .env
 yaoapp/plugins/email/data
 yaoapp/plugins/data
+*.dll

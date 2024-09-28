@@ -12,14 +12,17 @@ type Account struct {
 	Password string `json:"password"`
 	Type     string `json:"type"`
 }
-
+type Recipient struct {
+	Name    string `json:"name"`
+	Address string `json:"address"`
+}
 type Message struct {
-	From        string   `json:"from"`
-	To          string   `json:"to"`
-	CC          []string `json:"cc,omitempty"`
-	Subject     string   `json:"subject"`
-	Body        string   `json:"body"`
-	Attachments []string `json:"attachments,omitempty"`
+	From        string      `json:"from"`
+	To          []Recipient `json:"to"`
+	CC          []Recipient `json:"cc,omitempty"`
+	Subject     string      `json:"subject"`
+	Body        string      `json:"body"`
+	Attachments []string    `json:"attachments,omitempty"`
 }
 
 type Email struct {
