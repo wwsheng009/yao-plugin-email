@@ -13,7 +13,7 @@ type Account struct {
 	Type     string `json:"type"`
 }
 type Recipient struct {
-	Name    string `json:"name"`
+	Name    string `json:"name,omitempty"`
 	Address string `json:"address"`
 }
 type Message struct {
