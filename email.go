@@ -12,17 +12,13 @@ type Account struct {
 	Password string `json:"password"`
 	Type     string `json:"type"`
 }
-type Recipient struct {
-	Name    string `json:"name,omitempty"`
-	Address string `json:"address"`
-}
 type Message struct {
-	From        string      `json:"from"`
-	To          []Recipient `json:"to"`
-	CC          []Recipient `json:"cc,omitempty"`
-	Subject     string      `json:"subject"`
-	Body        string      `json:"body"`
-	Attachments []string    `json:"attachments,omitempty"`
+	From        string         `json:"from"`
+	To          []mail.Address `json:"to"`
+	CC          []mail.Address `json:"cc,omitempty"`
+	Subject     string         `json:"subject"`
+	Body        string         `json:"body"`
+	Attachments []string       `json:"attachments,omitempty"`
 }
 
 type Email struct {
@@ -48,12 +44,12 @@ type BodyPart struct {
 type MessageReceived struct {
 	From        []mail.Address `json:"from"`
 	To          []mail.Address `json:"to"`
-	Subject     string         `json:"subject"`
-	Body        []BodyPart     `json:"body"`
-	Attachments []string       `json:"attachments,omitempty"`
-	Date        time.Time      `json:"date"`
-	Error       string         `json:"error"`
-	MessageId   string         `json:"message_id"`
-	Folder      string         `json:"folder"`
-	Uid         uint32         `json:"uid"`
+	Subject     string      `json:"subject"`
+	Body        []BodyPart  `json:"body"`
+	Attachments []string    `json:"attachments,omitempty"`
+	Date        time.Time   `json:"date"`
+	Error       string      `json:"error"`
+	MessageId   string      `json:"message_id"`
+	Folder      string      `json:"folder"`
+	Uid         uint32      `json:"uid"`
 }
