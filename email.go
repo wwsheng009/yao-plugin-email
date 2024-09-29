@@ -24,6 +24,7 @@ type Message struct {
 type Email struct {
 	Account  Account   `json:"account"`
 	Messages []Message `json:"messages"`
+	Folder  string    `json:"folder"`//folder to save the attachements
 }
 
 type BodyPart struct {
@@ -44,12 +45,12 @@ type BodyPart struct {
 type MessageReceived struct {
 	From        []mail.Address `json:"from"`
 	To          []mail.Address `json:"to"`
-	Subject     string      `json:"subject"`
-	Body        []BodyPart  `json:"body"`
-	Attachments []string    `json:"attachments,omitempty"`
-	Date        time.Time   `json:"date"`
-	Error       string      `json:"error"`
-	MessageId   string      `json:"message_id"`
-	Folder      string      `json:"folder"`
-	Uid         uint32      `json:"uid"`
+	Subject     string         `json:"subject"`
+	Body        []BodyPart     `json:"body"`
+	Attachments []string       `json:"attachments,omitempty"`
+	Date        time.Time      `json:"date"`
+	Error       string         `json:"error"`
+	MessageId   string         `json:"message_id"`
+	Folder      string         `json:"folder"`
+	Uid         uint32         `json:"uid"`
 }

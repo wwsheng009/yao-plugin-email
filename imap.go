@@ -63,7 +63,7 @@ func connectToServer(username, password, server string, port int) (*client.Clien
 	return c, nil
 }
 
-func fetchImapEmails(imapClient *client.Client) ([]MessageReceived, error) {
+func fetchImapEmails(imapClient *client.Client, email Email) ([]MessageReceived, error) {
 
 	emailObjects := make([]MessageReceived, 0)
 
@@ -141,7 +141,10 @@ func fetchImapEmails(imapClient *client.Client) ([]MessageReceived, error) {
 			emailObj.MessageId = messageId
 		}
 		folder := getUniqueFolder(emailObj.MessageId)
-		folder = "data/emails/" + folder
+		if email.Folder == "" {
+			email.Folder = "data/upload/emails"
+		}
+		folder = email.Folder + "/" + folder
 		emailObj.Folder = folder
 
 		if date, err := header.Date(); err == nil {
@@ -313,7 +316,7 @@ func receiveImapEmails(email Email) ([]MessageReceived, error) {
 	}
 	defer c.Logout()
 
-	return fetchImapEmails(c)
+	return fetchImapEmails(c, email)
 
 }
 
