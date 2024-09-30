@@ -28,14 +28,15 @@ func getUniqueFolder(messageId string) string {
 	// fileName := fmt.Sprintf("%s.txt", hashStr)
 	return hashStr
 }
-func makeFolder(folderPath string) {
+func makeFolder(folderPath string) error {
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
 		err := os.MkdirAll(folderPath, os.ModePerm)
 		if err != nil {
-			fmt.Println("Failed to create folder:", err)
-			return
+			// fmt.Println("Failed to create folder:", err)
+			return err
 		}
 	}
+	return nil
 }
 func convertUtf8String(encodedString string) string {
 	encodedString = strings.TrimPrefix(encodedString, "=?utf-8?B?")
@@ -214,8 +215,12 @@ func fetchImapEmails(imapClient *client.Client, email Email) ([]MessageReceived,
 					if ok {
 						headerPart.SavedFileName = fmt.Sprintf("%s_%s", cid, filename)
 						headerPart.SavedFilePath = fmt.Sprintf("%s/%s_%s", folder, cid, filename)
-						makeFolder(folder)
-
+						err = makeFolder(folder)
+						if err != nil {
+							emailObj.Error = err.Error()
+							emailObjects = append(emailObjects, emailObj)
+							continue
+						}
 						file, err := os.Create(headerPart.SavedFilePath)
 						if err != nil {
 							emailObj.Error = err.Error()
@@ -260,6 +265,12 @@ func fetchImapEmails(imapClient *client.Client, email Email) ([]MessageReceived,
 				headerPart.Attachment = filename
 				headerPart.SavedFileName = filename
 				headerPart.SavedFilePath = fmt.Sprintf("%s/%s", folder, filename)
+				err = makeFolder(folder)
+				if err != nil {
+					emailObj.Error = err.Error()
+					emailObjects = append(emailObjects, emailObj)
+					continue
+				}
 				file, err := os.Create(headerPart.SavedFilePath)
 				if err != nil {
 					emailObj.Error = err.Error()
