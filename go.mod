@@ -1,6 +1,6 @@
 module yao-plugin-email
 
-go 1.20
+go 1.23.3
 
 require (
 	github.com/emersion/go-imap v1.2.1
