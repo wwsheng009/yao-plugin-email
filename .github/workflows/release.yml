@@ -34,7 +34,7 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: email-linux-plugin
+        tag_name: yao-email-plugin
         files: |
           *.so
           *.dll
