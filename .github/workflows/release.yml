@@ -26,7 +26,8 @@ jobs:
       run: |
         GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build -o email-linux-amd64.so
         GOOS=linux CGO_ENABLED=0 GOARCH=arm64 go build -o email-linux-arm64.so
-        chmod +x email-*.so
+        GOOS=windows CGO_ENABLED=0 GOARCH=amd64 go build -o email-windows-amd64.dll
+        chmod +x email-*.*
         ls -lart
 
     - name: Create Release
@@ -36,6 +37,7 @@ jobs:
         tag_name: email-linux-plugin
         files: |
           *.so
+          *.dll
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
