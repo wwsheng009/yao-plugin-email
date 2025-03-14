@@ -58,7 +58,7 @@ func TestEmailPlugin_Exec(t *testing.T) {
 				name: "send",
 				args: []interface{}{requestBody},
 			},
-			want: &grpc.Response{Bytes: []byte(`{"code":200,"message":"发送成功"}`), Type: "map"},
+			want: &grpc.Response{Bytes: []byte(`{"code":200,"message":"操作成功"}`), Type: "map"},
 		},
 		// TODO: Add test cases.
 	}

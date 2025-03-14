@@ -321,6 +321,21 @@ func fetchImapEmails(imapClient *client.Client, email Email) ([]MessageReceived,
 
 func receiveImapEmails(email Email) ([]MessageReceived, error) {
 	account := email.Account
+	
+	// 验证账户信息
+	if account.Username == "" {
+		return nil, fmt.Errorf("IMAP username is required")
+	}
+	if account.Password == "" {
+		return nil, fmt.Errorf("IMAP password is required")
+	}
+	if account.Server == "" {
+		return nil, fmt.Errorf("IMAP server is required")
+	}
+	if account.Port <= 0 {
+		return nil, fmt.Errorf("IMAP port must be greater than 0")
+	}
+
 	c, err := connectToServer(account.Username, account.Password, account.Server, account.Port)
 	if err != nil {
 		return nil, err

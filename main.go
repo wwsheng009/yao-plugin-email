@@ -3,9 +3,11 @@ package main
 //插件模板
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/yaoapp/kun/grpc"
 )
@@ -30,6 +32,57 @@ func (plugin *EmailPlugin) setLogFile() {
 	plugin.Plugin.SetLogger(output, grpc.Trace)
 }
 
+// Response 统一响应结构
+type Response struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+// 创建错误响应
+func newErrorResponse(code int, message string) Response {
+	return Response{
+		Code:    code,
+		Message: message,
+	}
+}
+
+// 创建成功响应
+func newSuccessResponse(data interface{}) Response {
+	return Response{
+		Code:    200,
+		Message: "操作成功",
+		Data:    data,
+	}
+}
+
+// 解析参数
+func parseArgs(args []interface{}) (*Email, error) {
+	if len(args) < 1 {
+		return nil, fmt.Errorf("参数不足，需要一个参数")
+	}
+
+	var email Email
+	switch data := args[0].(type) {
+	case string:
+		if err := json.Unmarshal([]byte(data), &email); err != nil {
+			return nil, err
+		}
+	case map[string]interface{}:
+		jsonData, err := json.Marshal(data)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(jsonData, &email); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("传入参数类型错误,请传入json数据")
+	}
+
+	return &email, nil
+}
+
 // 插件执行需要实现的方法
 // 参数name是在调用插件时的方法名，比如调用插件demo的Hello方法是的规则是plugins.demo.Hello时。
 //
@@ -38,112 +91,66 @@ func (plugin *EmailPlugin) setLogFile() {
 // args参数是一个数组，需要在插件中自行解析。判断它的长度与类型，再转入具体的go类型。
 //
 // Exec 插件入口函数
-
 func (plugin *EmailPlugin) Exec(name string, args ...interface{}) (*grpc.Response, error) {
-	// plugin.Logger.Log(hclog.Trace, "plugin method called", name)
-	// plugin.Logger.Log(hclog.Trace, "args", args)
-	isOk := true
-	var v = map[string]interface{}{"code": 200, "message": "发送成功"}
-	var email Email
+	var response Response
 
 	switch name {
 	case "send":
-		if len(args) < 1 {
-			v = map[string]interface{}{"code": 400, "message": "参数不足，需要一个参数"}
-			isOk = false
-		}
-		if isOk {
-			switch data := args[0].(type) {
-
-			case string:
-				err := json.Unmarshal([]byte(data), &email)
+		email, err := parseArgs(args)
+		if err != nil {
+			response = newErrorResponse(400, err.Error())
+		} else {
+			if plugin.Plugin.Logger.IsDebug() {
+				// 输出转换后的email结构
+				jsonBytes, err := json.MarshalIndent(email, "", "    ")
 				if err != nil {
-					isOk = false
-					v = map[string]interface{}{"code": 400, "message": err.Error()}
+					return nil, fmt.Errorf("序列化email失败: %v", err)
 				}
-			case map[string]interface{}:
-				jsonData, err := json.Marshal(data)
-				if err != nil {
-					isOk = false
-					v = map[string]interface{}{"code": 400, "message": err.Error()}
-				}
-				err = json.Unmarshal(jsonData, &email)
-				if err != nil {
-					isOk = false
-					v = map[string]interface{}{"code": 400, "message": err.Error()}
-				}
-			default:
-				isOk = false
-				v = map[string]interface{}{"code": 400, "message": "传入参数类型错误,请传入json数据"}
+				plugin.Plugin.Logger.Info("转换后的email结构: %s", string(jsonBytes))
 			}
 
-			if isOk {
-				// if email.Account.Type != "imap" {
-				errs := sendStmpEmails(email)
-				if len(errs) > 0 {
-					isOk = false
-					message := ""
-					for _, e := range errs {
-						message += e.Error() + "\n"
-					}
-					v = map[string]interface{}{"code": 400, "message": message}
+			errs := sendStmpEmails(*email)
+			if len(errs) > 0 {
+				var message strings.Builder
+				for _, e := range errs {
+					message.WriteString(e.Error())
+					message.WriteString("\n")
 				}
+				response = newErrorResponse(400, message.String())
+			} else {
+				response = newSuccessResponse(nil)
 			}
-
 		}
+
 	case "receive":
-		if len(args) < 1 {
-			v = map[string]interface{}{"code": 400, "message": "参数不足，需要一个参数"}
-			isOk = false
+		email, err := parseArgs(args)
+		if err != nil {
+			response = newErrorResponse(400, err.Error())
+		} else {
+			if plugin.Plugin.Logger.IsDebug() {
+				// 输出转换后的email结构
+				jsonBytes, err := json.MarshalIndent(email, "", "    ")
+				if err != nil {
+					return nil, fmt.Errorf("序列化email失败: %v", err)
+				}
+				plugin.Plugin.Logger.Info("转换后的email结构: %s", string(jsonBytes))
+			}
+			messages, err := receiveImapEmails(*email)
+			if err != nil {
+				response = newErrorResponse(400, err.Error())
+			} else {
+				response = newSuccessResponse(map[string]interface{}{"emails": messages})
+			}
 		}
 
-		if isOk {
-
-			// var account Account
-			switch data := args[0].(type) {
-
-			case string:
-				err := json.Unmarshal([]byte(data), &email)
-				if err != nil {
-					isOk = false
-					v = map[string]interface{}{"code": 400, "message": err.Error()}
-				}
-			case map[string]interface{}:
-				jsonData, err := json.Marshal(data)
-				if err != nil {
-					isOk = false
-					v = map[string]interface{}{"code": 400, "message": err.Error()}
-				}
-				err = json.Unmarshal(jsonData, &email)
-				if err != nil {
-					isOk = false
-					v = map[string]interface{}{"code": 400, "message": err.Error()}
-				}
-			default:
-				isOk = false
-				v = map[string]interface{}{"code": 400, "message": "传入参数类型错误,请传入json数据"}
-			}
-
-			if isOk {
-				messages, err := receiveImapEmails(email)
-				if err != nil {
-					isOk = false
-					v = map[string]interface{}{"code": 400, "message": err.Error()}
-				} else {
-					v = map[string]interface{}{"code": 200, "emails": messages}
-				}
-			}
-
-		}
+	default:
+		response = newErrorResponse(404, fmt.Sprintf("未找到方法: %s", name))
 	}
 
-	//输出前需要转换成字节
-	bytes, err := json.Marshal(v)
+	bytes, err := json.Marshal(response)
 	if err != nil {
 		return nil, err
 	}
-	//设置输出数据的类型
-	//支持的类型：map/interface/string/integer,int/float,double/array,slice
 	return &grpc.Response{Bytes: bytes, Type: "map"}, nil
 }
 

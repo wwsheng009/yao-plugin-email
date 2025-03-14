@@ -13,9 +13,14 @@ the default plugin folder path is `<YAO_EXTENSION_ROOT>/plugins/`, the default v
 
 ## build
 
+linux
 ```sh
-
 make build
+```
+
+windows 
+```cmd
+go build -o yaoapp/plugins/email.dll
 ```
 
 ## test

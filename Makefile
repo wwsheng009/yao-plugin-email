@@ -4,6 +4,7 @@ build:
 	chmod +x yaoapp/plugins/email.so
 	
 windows:
+# 	go build -o yaoapp/plugins/email.dll
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -o yaoapp/plugins/email.dll
 
 .PHONY:	clean

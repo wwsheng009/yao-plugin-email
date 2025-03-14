@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"fmt"
 
 	"gopkg.in/gomail.v2"
 )
@@ -16,7 +17,47 @@ func sendStmpEmails(email Email) []error {
 	}
 	return errs
 }
+
 func sendStmpEmail(account Account, message Message) error {
+	// 验证账户信息
+	if account.Username == "" {
+		return fmt.Errorf("SMTP username is required")
+	}
+	if account.Password == "" {
+		return fmt.Errorf("SMTP password is required")
+	}
+	if account.Server == "" {
+		return fmt.Errorf("SMTP server is required")
+	}
+	if account.Port <= 0 {
+		return fmt.Errorf("SMTP port must be greater than 0")
+	}
+
+	// 验证消息内容
+	if len(message.To) == 0 {
+		return fmt.Errorf("at least one recipient is required")
+	}
+	if message.Subject == "" {
+		return fmt.Errorf("email subject is required")
+	}
+	if message.Body == "" {
+		return fmt.Errorf("email body is required")
+	}
+
+	// 验证收件人地址
+	for i, recipient := range message.To {
+		if recipient.Address == "" {
+			return fmt.Errorf("recipient %d: email address is required", i+1)
+		}
+	}
+
+	// 验证抄送地址
+	for i, recipient := range message.CC {
+		if recipient.Address == "" {
+			return fmt.Errorf("CC recipient %d: email address is required", i+1)
+		}
+	}
+
 	m := gomail.NewMessage()
 	m.SetHeader("From", message.From)
 	if message.From == "" {
